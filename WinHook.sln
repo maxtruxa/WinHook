@@ -1,0 +1,32 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "WinHook", "WinHook\WinHook.vcxproj", "{C6CB5C15-49B5-4945-A598-A3AE1803605B}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TestHookDLL", "TestHookDLL\TestHookDLL.vcxproj", "{29448417-9724-44A0-AE3C-D973DBB6EF59}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TestInjector", "TestInjector\TestInjector.vcxproj", "{1EE87AE9-212F-4A3F-9B1D-2BA33043506A}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Release|Win32 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{C6CB5C15-49B5-4945-A598-A3AE1803605B}.Debug|Win32.ActiveCfg = Debug|Win32
+		{C6CB5C15-49B5-4945-A598-A3AE1803605B}.Debug|Win32.Build.0 = Debug|Win32
+		{C6CB5C15-49B5-4945-A598-A3AE1803605B}.Release|Win32.ActiveCfg = Release|Win32
+		{C6CB5C15-49B5-4945-A598-A3AE1803605B}.Release|Win32.Build.0 = Release|Win32
+		{29448417-9724-44A0-AE3C-D973DBB6EF59}.Debug|Win32.ActiveCfg = Debug|Win32
+		{29448417-9724-44A0-AE3C-D973DBB6EF59}.Debug|Win32.Build.0 = Debug|Win32
+		{29448417-9724-44A0-AE3C-D973DBB6EF59}.Release|Win32.ActiveCfg = Release|Win32
+		{29448417-9724-44A0-AE3C-D973DBB6EF59}.Release|Win32.Build.0 = Release|Win32
+		{1EE87AE9-212F-4A3F-9B1D-2BA33043506A}.Debug|Win32.ActiveCfg = Debug|Win32
+		{1EE87AE9-212F-4A3F-9B1D-2BA33043506A}.Debug|Win32.Build.0 = Debug|Win32
+		{1EE87AE9-212F-4A3F-9B1D-2BA33043506A}.Release|Win32.ActiveCfg = Release|Win32
+		{1EE87AE9-212F-4A3F-9B1D-2BA33043506A}.Release|Win32.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
