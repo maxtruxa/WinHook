@@ -35,7 +35,8 @@ BOOL WINAPI AdjustPrivilege(
     TOKEN_PRIVILEGES privToken;
     privToken.PrivilegeCount = 1;
     privToken.Privileges[0].Luid = luid;
-    privToken.Privileges[0].Attributes = (bEnable == TRUE ? SE_PRIVILEGE_ENABLED : SE_PRIVILEGE_REMOVED);
+    privToken.Privileges[0].Attributes =
+        (bEnable == TRUE ? SE_PRIVILEGE_ENABLED : SE_PRIVILEGE_REMOVED);
     BOOL bResult = AdjustTokenPrivileges(hToken, FALSE, &privToken, sizeof(privToken), NULL, NULL);
     CloseHandlePreservingLastError(hToken);
     return bResult;

@@ -64,7 +64,7 @@
   <ItemGroup>
     <ClCompile Include="Common.cpp" />
     <ClCompile Include="Privileges.cpp" />
-    <ClCompile Include="RemoteProcess.cpp" />
+    <ClCompile Include="Process.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="WinHook.hpp" />

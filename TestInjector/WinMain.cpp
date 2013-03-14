@@ -96,22 +96,21 @@ void InjectDLLClassic(
     }
     /* Start a new thread in the target process with `LoadLibraryA` as entry point */
     HMODULE hRemoteModule = NULL;
-    BOOL bResult = RemoteExecuteFunctionInNewThread(dwProcessID, "kernel32.dll", "LoadLibraryA", pParameter,
-        TRUE, reinterpret_cast<DWORD*>(&hRemoteModule));
+    BOOL bResult = RemoteExecuteFunctionInNewThread(dwProcessID, "kernel32.dll", "LoadLibraryA",
+        pParameter, TRUE, reinterpret_cast<DWORD*>(&hRemoteModule));
     if(bResult == FALSE)
         ErrorMessage("Failed to call `LoadLibraryA` in remote process.");
     /* Free dll name from address space of target process */
     if(RemoteFreeData(dwProcessID, pParameter, dwParameterSize) == FALSE)
-    {
         WarningMessage("Failed to free dll name in remote process memory.");
-    }
     if(bResult == TRUE)
     {
         /* `LoadLibraryA` returns NULL on failure and a valid HMODULE on success */
         if(hRemoteModule != NULL)
         {
             CHAR szSuccessMessage[2048];
-            sprintf_s(szSuccessMessage, sizeof(szSuccessMessage), "Remote executed `LoadLibraryA` returned %08x.", hRemoteModule);
+            sprintf_s(szSuccessMessage, sizeof(szSuccessMessage),
+                "Remote executed `LoadLibraryA` returned %08x.", hRemoteModule);
             SuccessMessage(szSuccessMessage);
         }
         else
@@ -132,7 +131,7 @@ void UnjectDLLClassic(
         szDllNamePure = szDllName;
     else
         szDllNamePure++;
-    /* Retrieve handle to module in target process to free */
+    /* Retrieve handle to module in target process that should be freed */
     HMODULE hModule = RemoteGetModuleHandle(dwProcessID, szDllNamePure);
     if(hModule == NULL)
     {
@@ -141,8 +140,8 @@ void UnjectDLLClassic(
     }
     /* Start a new thread in the target process with `FreeLibrary` as entry point */
     BOOL bRemoteResult = FALSE;
-    if(RemoteExecuteFunctionInNewThread(dwProcessID, "kernel32.dll", "FreeLibrary", (LPVOID)hModule,
-        TRUE, reinterpret_cast<DWORD*>(&bRemoteResult)) == FALSE)
+    if(RemoteExecuteFunctionInNewThread(dwProcessID, "kernel32.dll", "FreeLibrary",
+        (LPVOID)hModule, TRUE, reinterpret_cast<DWORD*>(&bRemoteResult)) == FALSE)
     {
         ErrorMessage("Failed to free dll in remote process.");
         return;
@@ -153,10 +152,8 @@ void UnjectDLLClassic(
         SuccessMessage("Remote executed `FreeLibrary` returned FALSE.");
 }
 
-typedef HMODULE (__stdcall* LoadLibraryAFCTPTR)(LPCSTR);
-
-HMODULE __stdcall InjectionStub(
-    __in LoadLibraryAFCTPTR pLoadLibrary,
+HMODULE WINAPI InjectionStub(
+    __in HMODULE (WINAPI* pLoadLibrary)(LPCSTR),
     __in LPCSTR szDllName
     )
 {
@@ -201,10 +198,10 @@ void InjectDLLFancy(
     SuccessMessage("Injection successfull.");
 }
 
-typedef BOOL (__stdcall* FreeLibraryFCTPTR)(HMODULE);
+typedef BOOL (WINAPI* FreeLibraryFCTPTR)(HMODULE);
 
-BOOL __stdcall UnjectionStub(
-    __in FreeLibraryFCTPTR pFreeLibrary,
+BOOL WINAPI UnjectionStub(
+    __in BOOL (WINAPI* pFreeLibrary)(HMODULE),
     __in HMODULE hModule
     )
 {
