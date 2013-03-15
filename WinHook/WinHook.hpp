@@ -42,6 +42,54 @@
 #define ERR (exp) PREMSG("error", exp)
 
 /****************************************************************
+ * Remote Memory Management
+ */
+
+/* Allocates a region of memory with the specified access rights within the
+ * virtual address space of another process and writes data to it.
+ */
+EXPORTED LPVOID WINAPI RemoteStoreMemory(
+    __in HANDLE hProcess,           /* PROCESS_VM_OPERATION, PROCESS_VM_WRITE */
+    __in LPCVOID pData,
+    __in DWORD dwDataSize,
+    __in DWORD dwProtection
+    );
+EXPORTED LPVOID WINAPI RemoteStoreMemory(
+    __in DWORD dwProcessId,
+    __in LPCVOID pData,
+    __in DWORD dwDataSize,
+    __in DWORD dwProtection
+    );
+
+/* Frees a region of memory within the virtual address space of another process,
+ * previously allocated by a call to `RemoteStoreData()`.
+ */
+EXPORTED BOOL WINAPI RemoteFreeMemory(
+    __in HANDLE hProcess,           /* PROCESS_VM_OPERATION */
+    __in LPVOID pData,
+    __in DWORD dwDataSize
+    );
+EXPORTED BOOL WINAPI RemoteFreeMemory(
+    __in DWORD dwProcessId,
+    __in LPVOID pData,
+    __in DWORD dwDataSize
+    );
+
+/* Changes the protection of memory within the virtual address space of another
+ * process.
+ */
+DWORD RemoteProtectMemory(
+    __in HANDLE hProcess,           /* PROCESS_QUERY_INFORMATION, PROCESS_VM_OPERATION */
+    __in LPCVOID lpAddress,
+    __in DWORD dwNewProtection
+    );
+DWORD RemoteProtectMemory(
+    __in DWORD dwProcessId,
+    __in LPCVOID lpAddress,
+    __in DWORD dwNewProtection
+    );
+
+/****************************************************************
  * Privileges
  */
 
@@ -57,23 +105,23 @@ EXPORTED BOOL WINAPI AdjustPrivilege(
 EXPORTED BOOL WINAPI EnableDebugPrivilege();
 
 /****************************************************************
- * Process manipulation
+ * Process Manipulation
  */
 
 /* Retrieves the process id of the first process whose image name matches the
  * specified string.
  */
-EXPORTED DWORD WINAPI GetProcessID(
+EXPORTED DWORD WINAPI GetProcessId(
     __in LPCSTR szProcessName
     );
 
 /* Retrieves the thread id of the main thread of the specified process.
  */
-EXPORTED DWORD WINAPI GetMainThreadID(
+EXPORTED DWORD WINAPI GetMainThreadId(
     __in HANDLE hProcess            /* PROCESS_VM_READ */
     );
-EXPORTED DWORD WINAPI GetMainThreadID(
-    __in DWORD dwProcessID
+EXPORTED DWORD WINAPI GetMainThreadId(
+    __in DWORD dwProcessId
     );
 
 /* Acquires the handle to the first module loaded by a remote process whose
@@ -84,7 +132,7 @@ EXPORTED HMODULE WINAPI RemoteGetModuleHandle(
     __in LPCSTR szModuleName
     );
 EXPORTED HMODULE WINAPI RemoteGetModuleHandle(
-    __in DWORD dwProcessID,
+    __in DWORD dwProcessId,
     __in LPCSTR szModuleName
     );
 
@@ -102,39 +150,9 @@ EXPORTED FARPROC WINAPI RemoteGetProcAddress(
     __in LPCSTR szFunctionName
     );
 EXPORTED FARPROC WINAPI RemoteGetProcAddress(
-    __in DWORD dwProcessID,
+    __in DWORD dwProcessId,
     __in LPCSTR szModulename,
     __in LPCSTR szFunctionName
-    );
-
-/* Allocates a region of memory with the specified access rights within the
- * virtual address space of another process and writes data to it.
- */
-EXPORTED LPVOID WINAPI RemoteStoreData(
-    __in HANDLE hProcess,           /* PROCESS_VM_OPERATION, PROCESS_VM_WRITE */
-    __in LPCVOID pData,
-    __in DWORD dwDataSize,
-    __in DWORD dwProtection
-    );
-EXPORTED LPVOID WINAPI RemoteStoreData(
-    __in DWORD dwProcessID,
-    __in LPCVOID pData,
-    __in DWORD dwDataSize,
-    __in DWORD dwProtection
-    );
-
-/* Frees a region of memory within the virtual address space of another
- * process, previously allocated by a call to `RemoteStoreData()`.
- */
-EXPORTED BOOL WINAPI RemoteFreeData(
-    __in HANDLE hProcess,           /* PROCESS_VM_OPERATION */
-    __in LPVOID pData,
-    __in DWORD dwDataSize
-    );
-EXPORTED BOOL WINAPI RemoteFreeData(
-    __in DWORD dwProcessID,
-    __in LPVOID pData,
-    __in DWORD dwDataSize
     );
 
 /* Lets another process execute a function in a new thread and optionally waits
@@ -150,7 +168,7 @@ EXPORTED BOOL WINAPI RemoteExecuteFunctionInNewThread(
     __out_opt DWORD* pReturnValue = NULL
     );
 EXPORTED BOOL WINAPI RemoteExecuteFunctionInNewThread(
-    __in DWORD dwProcessID,
+    __in DWORD dwProcessId,
     __in LPCSTR szModuleName,
     __in LPCSTR szFunctionName,
     __in LPVOID pParameter,
@@ -176,7 +194,7 @@ EXPORTED BOOL WINAPI RemoteExecuteStub(
     __in DWORD dwParameterCount
     );
 EXPORTED BOOL WINAPI RemoteExecuteStub(
-    __in DWORD dwThreadID,
+    __in DWORD dwThreadId,
     __in LPCVOID pStub,
     __in DWORD dwStubSize,
     __in UINT_PTR* ppParameters,
@@ -185,21 +203,21 @@ EXPORTED BOOL WINAPI RemoteExecuteStub(
 
 /* Gets the current EIP of the specified thread.
  */
-EXPORTED UINT_PTR WINAPI RemoteGetEIP(
+EXPORTED UINT_PTR WINAPI GetEIP(
     __in HANDLE hThread             /* THREAD_SUSPEND_RESUME, THREAD_GET_CONTEXT, THREAD_QUERY_INFORMATION */
     );
-EXPORTED UINT_PTR WINAPI RemoteGetEIP(
-    __in DWORD dwThreadID
+EXPORTED UINT_PTR WINAPI GetEIP(
+    __in DWORD dwThreadId
     );
 
 /* Sets the current EIP of the specified thread.
  */
-EXPORTED BOOL WINAPI RemoteSetEIP(
+EXPORTED BOOL WINAPI SetEIP(
     __in HANDLE hThread,            /* THREAD_SUSPEND_RESUME, THREAD_GET_CONTEXT, THREAD_QUERY_INFORMATION, THREAD_SET_CONTEXT */
     __in UINT_PTR pEIP
     );
-EXPORTED BOOL WINAPI RemoteSetEIP(
-    __in DWORD dwThreadID,
+EXPORTED BOOL WINAPI SetEIP(
+    __in DWORD dwThreadId,
     __in UINT_PTR pEIP
     );
 

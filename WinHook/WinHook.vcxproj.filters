@@ -4,6 +4,7 @@
     <ClCompile Include="Common.cpp" />
     <ClCompile Include="Privileges.cpp" />
     <ClCompile Include="Process.cpp" />
+    <ClCompile Include="Memory.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="WinHook.hpp" />

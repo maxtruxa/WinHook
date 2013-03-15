@@ -21,7 +21,7 @@
 #include <Psapi.h>
 #pragma comment(lib, "psapi.lib")
 
-DWORD WINAPI GetProcessID(
+DWORD WINAPI GetProcessId(
     __in LPCSTR szProcessName
     )
 {
@@ -31,7 +31,7 @@ DWORD WINAPI GetProcessID(
         return 0;
     PROCESSENTRY32 entry;
     entry.dwSize = sizeof(entry);
-    DWORD dwProcessID = 0;
+    DWORD dwProcessId = 0;
     /* Iterate over all snapshot entries */
     if(Process32First(hSnapshot, &entry) == TRUE)
     {
@@ -39,12 +39,12 @@ DWORD WINAPI GetProcessID(
         {
             /* Return process id if name matches */
             if(_stricmp(entry.szExeFile, szProcessName) == 0)
-                dwProcessID = entry.th32ProcessID;
+                dwProcessId = entry.th32ProcessID;
         }
-        while(Process32Next(hSnapshot, &entry) == TRUE && dwProcessID == 0);
+        while(Process32Next(hSnapshot, &entry) == TRUE && dwProcessId == 0);
     }
     CloseHandlePreservingLastError(hSnapshot);
-    return dwProcessID;
+    return dwProcessId;
 }
 
 DWORD WINAPI GetMainThreadID(
@@ -69,12 +69,12 @@ DWORD WINAPI GetMainThreadID(
 }
 
 DWORD WINAPI GetMainThreadID(
-    __in DWORD dwProcessID
+    __in DWORD dwProcessId
     )
 {
     /* ReadProcessMemory: PROCESS_VM_READ
      */
-    HANDLE hProcess = OpenProcess(PROCESS_VM_READ, FALSE, dwProcessID);
+    HANDLE hProcess = OpenProcess(PROCESS_VM_READ, FALSE, dwProcessId);
     if(hProcess == NULL)
         return 0;
     DWORD dwThreadID = GetMainThreadID(hProcess);
@@ -126,14 +126,14 @@ HMODULE WINAPI RemoteGetModuleHandle(
 }
 
 HMODULE WINAPI RemoteGetModuleHandle(
-    __in DWORD dwProcessID,
+    __in DWORD dwProcessId,
     __in LPCSTR szModuleName
     )
 {
     /* EnumProcessModules: PROCESS_QUERY_INFORMATION, PROCESS_VM_READ
      * GetModuleBaseName: PROCESS_QUERY_INFORMATION, PROCESS_VM_READ
      */
-    HANDLE hProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, dwProcessID);
+    HANDLE hProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, dwProcessId);
     if(hProcess == NULL)
         return FALSE;
     HMODULE hModule = RemoteGetModuleHandle(hProcess, szModuleName);
@@ -165,85 +165,19 @@ FARPROC WINAPI RemoteGetProcAddress(
 }
 
 FARPROC WINAPI RemoteGetProcAddress(
-    __in DWORD dwProcessID,
+    __in DWORD dwProcessId,
     __in LPCSTR szModulename,
     __in LPCSTR szFunctionName
     )
 {
     /*
      */
-    HANDLE hProcess = OpenProcess(PROCESS_QUERY_INFORMATION, FALSE, dwProcessID);
+    HANDLE hProcess = OpenProcess(PROCESS_QUERY_INFORMATION, FALSE, dwProcessId);
     if(hProcess == NULL)
         return FALSE;
     FARPROC pRemoteProc = RemoteGetProcAddress(hProcess, szModulename, szFunctionName);
     CloseHandlePreservingLastError(hProcess);
     return pRemoteProc;
-}
-
-LPVOID WINAPI RemoteStoreData(
-    __in HANDLE hProcess,
-    __in LPCVOID pData,
-    __in DWORD dwDataSize,
-    __in DWORD dwProtection
-    )
-{
-    /* Allocate memory in address space of target process */
-    LPVOID pRemoteData = VirtualAllocEx(hProcess, NULL, dwDataSize, MEM_RESERVE | MEM_COMMIT, dwProtection);
-    if(pRemoteData == NULL)
-        return NULL;
-    /* Write data to allocated memory */
-    if(WriteProcessMemory(hProcess, pRemoteData, pData, dwDataSize, NULL) == FALSE)
-    {
-        DWORD dwLastError = GetLastError();
-        RemoteFreeData(hProcess, pRemoteData, dwDataSize);
-        SetLastError(dwLastError);
-        return NULL;
-    }
-    return pRemoteData;
-}
-
-LPVOID WINAPI RemoteStoreData(
-    __in DWORD dwProcessID,
-    __in LPCVOID pData,
-    __in DWORD dwDataSize,
-    __in DWORD dwProtection
-    )
-{
-    /* VirtualAllocEx: PROCESS_VM_OPERATION
-     * WriteProcessMemory: PROCESS_VM_WRITE, PROCESS_VM_OPERATION
-     */
-    HANDLE hProcess = OpenProcess(PROCESS_VM_OPERATION | PROCESS_VM_WRITE, FALSE, dwProcessID);
-    if(hProcess == NULL)
-        return FALSE;
-    LPVOID pRemoteData = RemoteStoreData(hProcess, pData, dwDataSize, dwProtection);
-    CloseHandlePreservingLastError(hProcess);
-    return pRemoteData;
-}
-
-BOOL WINAPI RemoteFreeData(
-    __in HANDLE hProcess,
-    __in LPVOID pData,
-    __in DWORD dwDataSize
-    )
-{
-    /* Release memory */
-    return VirtualFreeEx(hProcess, pData, dwDataSize, MEM_DECOMMIT);
-}
-
-BOOL WINAPI RemoteFreeData(
-    __in DWORD dwProcessID,
-    __in LPVOID pData,
-    __in DWORD dwDataSize
-    )
-{
-    /* VirtualFreeEx: PROCESS_VM_OPERATION
-     */
-    HANDLE hProcess = OpenProcess(PROCESS_VM_OPERATION, FALSE, dwProcessID);
-    if(hProcess == NULL)
-        return FALSE;
-    BOOL bResult = RemoteFreeData(hProcess, pData, dwDataSize);
-    CloseHandlePreservingLastError(hProcess);
-    return bResult;
 }
 
 BOOL WINAPI RemoteExecuteFunctionInNewThread(
@@ -275,7 +209,7 @@ BOOL WINAPI RemoteExecuteFunctionInNewThread(
 }
 
 BOOL WINAPI RemoteExecuteFunctionInNewThread(
-    __in DWORD dwProcessID,
+    __in DWORD dwProcessId,
     __in LPCSTR szModuleName,
     __in LPCSTR szFunctionName,
     __in LPVOID pParameter,
@@ -287,7 +221,7 @@ BOOL WINAPI RemoteExecuteFunctionInNewThread(
     * CreateRemoteThread: PROCESS_CREATE_THREAD, PROCESS_QUERY_INFORMATION, PROCESS_VM_OPERATION, PROCESS_VM_WRITE, PROCESS_VM_READ
     */
     DWORD dwAccess = PROCESS_QUERY_INFORMATION | PROCESS_VM_READ | PROCESS_CREATE_THREAD | PROCESS_VM_OPERATION | PROCESS_VM_WRITE;
-    HANDLE hProcess = OpenProcess(dwAccess, FALSE, dwProcessID);
+    HANDLE hProcess = OpenProcess(dwAccess, FALSE, dwProcessId);
     if(hProcess == NULL)
         return FALSE;
     BOOL bResult = RemoteExecuteFunctionInNewThread(hProcess, szModuleName, szFunctionName, pParameter, bWait, pReturnValue);
@@ -412,7 +346,7 @@ BOOL WINAPI RemoteExecuteStub(
 }
 
 BOOL WINAPI RemoteExecuteStub(
-    __in DWORD dwThreadID,
+    __in DWORD dwThreadId,
     __in LPCVOID pStub,
     __in DWORD dwStubSize,
     __in UINT_PTR* ppParameters,
@@ -426,7 +360,7 @@ BOOL WINAPI RemoteExecuteStub(
      * ResumeThread: THREAD_SUSPEND_RESUME
      */
     DWORD dwAccess = THREAD_QUERY_INFORMATION | THREAD_SUSPEND_RESUME | THREAD_GET_CONTEXT | THREAD_SET_CONTEXT;
-    HANDLE hThread = OpenThread(dwAccess, FALSE, dwThreadID);
+    HANDLE hThread = OpenThread(dwAccess, FALSE, dwThreadId);
     if(hThread == NULL)
         return FALSE;
     BOOL bResult = RemoteExecuteStub(hThread, pStub, dwStubSize, ppParameters, dwParameterCount);
@@ -434,7 +368,7 @@ BOOL WINAPI RemoteExecuteStub(
     return bResult;
 }
 
-UINT_PTR WINAPI RemoteGetEIP(
+UINT_PTR WINAPI GetEIP(
     __in HANDLE hThread
     )
 {
@@ -459,8 +393,8 @@ UINT_PTR WINAPI RemoteGetEIP(
     return ctx.Eip;
 }
 
-UINT_PTR WINAPI RemoteGetEIP(
-    __in DWORD dwThreadID
+UINT_PTR WINAPI GetEIP(
+    __in DWORD dwThreadId
     )
 {
     /* SuspendThread: THREAD_SUSPEND_RESUME
@@ -468,15 +402,15 @@ UINT_PTR WINAPI RemoteGetEIP(
      * ResumeThread: THREAD_SUSPEND_RESUME
      */
     DWORD dwAccess = THREAD_SUSPEND_RESUME | THREAD_GET_CONTEXT | THREAD_QUERY_INFORMATION;
-    HANDLE hThread = OpenThread(dwAccess, FALSE, dwThreadID);
+    HANDLE hThread = OpenThread(dwAccess, FALSE, dwThreadId);
     if(hThread == NULL)
         return NULL;
-    UINT_PTR pEIP = RemoteGetEIP(hThread);
+    UINT_PTR pEIP = GetEIP(hThread);
     CloseHandlePreservingLastError(hThread);
     return pEIP;
 }
 
-BOOL WINAPI RemoteSetEIP(
+BOOL WINAPI SetEIP(
     __in HANDLE hThread,
     __in UINT_PTR pEIP
     )
@@ -500,8 +434,8 @@ BOOL WINAPI RemoteSetEIP(
     return TRUE;
 }
 
-BOOL WINAPI RemoteSetEIP(
-    __in DWORD dwThreadID,
+BOOL WINAPI SetEIP(
+    __in DWORD dwThreadId,
     __in UINT_PTR pEIP
     )
 {
@@ -511,10 +445,10 @@ BOOL WINAPI RemoteSetEIP(
      * ResumeThread: THREAD_SUSPEND_RESUME
      */
     DWORD dwAccess = THREAD_SUSPEND_RESUME | THREAD_GET_CONTEXT | THREAD_QUERY_INFORMATION | THREAD_SET_CONTEXT;
-    HANDLE hThread = OpenThread(dwAccess, FALSE, dwThreadID);
+    HANDLE hThread = OpenThread(dwAccess, FALSE, dwThreadId);
     if(hThread == NULL)
         return FALSE;
-    BOOL bResult = RemoteSetEIP(hThread, pEIP);
+    BOOL bResult = SetEIP(hThread, pEIP);
     CloseHandlePreservingLastError(hThread);
     return bResult;
 }

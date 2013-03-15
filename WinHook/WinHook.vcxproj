@@ -63,6 +63,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Common.cpp" />
+    <ClCompile Include="Memory.cpp" />
     <ClCompile Include="Privileges.cpp" />
     <ClCompile Include="Process.cpp" />
   </ItemGroup>
