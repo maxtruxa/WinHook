@@ -21,7 +21,7 @@
 
 #include "WinHook.hpp"
 
-__forceinline bool WINAPI _AdjustPrivilege(
+__forceinline bool WinHookApi _AdjustPrivilege(
     __in LUID* luid,
     __in bool enable
     )
