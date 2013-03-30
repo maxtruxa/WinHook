@@ -218,6 +218,12 @@ bool InjectDllStealthy(
         PrintError(_T("Failed to write dll name to remote process memory."));
         goto OnError;
     }
+    // Adjust protection of InjectionStub, so it can be read
+    if(ProtectMemory(InjectionStub, 100, ExecuteRead) == Invalid)
+    {
+        PrintError(_T("Failed to adjust page protection of stub in local process."));
+        goto OnError;
+    }
     // Build parameter list for stub.
     ptr_t parameters[] = { remoteLoadLibrary, remoteParameter };
     // Let main process of target process execute stub and return to normal execution flow afterwards.
@@ -308,6 +314,12 @@ bool EjectDllStealthy(
     if(moduleToFree == NULL)
     {
         PrintError(_T("Could not find dll in target process."));
+        goto OnError;
+    }
+    // Adjust protection of EjectionStub, so it can be read
+    if(ProtectMemory(EjectionStub, 100, ExecuteRead) == Invalid)
+    {
+        PrintError(_T("Failed to adjust page protection of stub in local process."));
         goto OnError;
     }
     // Build parameter list for stub.

@@ -195,6 +195,29 @@ EXPORTED bool WinHookApi FreeMemoryEx(
     __in ptr_t address
     );
 
+/* ProtectMemory
+ *
+ * Purpose:
+ *   Changes the access protection of a region of pages in the virtual address space of the current process.
+ *
+ * Parameters:
+ *   address            in          A pointer to the base address of the region of pages whose access protection
+ *                                  is to be changed.
+ *   size               in          The size of the region whose access protection attributes are changed, in bytes. The
+ *                                  region of affected memory pages includes all pages containing one or more bytes of
+ *                                  the region.
+ *   newProtection      in          The access protection to be applied to the region of pages.
+ *
+ * Return Value:
+ *   If the function succeeds, the return value is the old access protection.
+ *   If the function fails, the return value is 0. To get extended error information, call GetLastError.
+ */
+EXPORTED PageProtection WinHookApi ProtectMemory(
+    __in ptr_t address,
+    __in size_t size,
+    __in PageProtection newProtection
+    );
+
 /* ProtectMemoryEx
  *
  * Purpose:

@@ -77,6 +77,18 @@ bool WinHookApi FreeMemoryEx(
     return (VirtualFreeEx(process, (void*)address, 0, MEM_RELEASE) != FALSE);
 }
 
+PageProtection WinHookApi ProtectMemory(
+    __in ptr_t address,
+    __in size_t size,
+    __in PageProtection newProtection
+    )
+{
+    PageProtection oldProtection;
+    if(VirtualProtect((void*)address, size, newProtection, (DWORD*)&oldProtection) == FALSE)
+        return Invalid;
+    return oldProtection;
+}
+
 PageProtection WinHookApi ProtectMemoryEx(
     __in handle_t process,
     __in ptr_t address,
