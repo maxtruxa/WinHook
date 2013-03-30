@@ -1,119 +1,117 @@
 /* Copyright (c) 2013 Max Truxa
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy of this software
- * and associated documentation files (the "Software"), to deal in the Software without restriction,
- * including without limitation the rights to use, copy, modify, merge, publish, distribute,
- * sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
+ * Permission is hereby granted, free of charge, to any person obtaining a
+ * copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following conditions:
  *
- * The above copyright notice and this permission notice shall be included in all copies or
- * substantial portions of the Software.
+ * The above copyright notice and this permission notice shall be included
+ * in all copies or substantial portions of the Software.
  *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING
- * BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
- * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
  */
 
-#include "WinHookInternal.hpp"
+#include "WinHook.hpp"
 
-LPVOID WINAPI RemoteStoreMemory(
-    __in HANDLE hProcess,
-    __in LPCVOID pData,
-    __in DWORD dwDataSize,
-    __in DWORD dwProtection
+ptr_t WinHookApi StoreMemoryEx(
+    __in handle_t process,
+    __in PageProtection protection,
+    __in size_t allocSize,
+    __in void const* buffer,
+    __in size_t bufferSize
     )
 {
-    /* Allocate memory in address space of target process */
-    LPVOID pRemoteData = VirtualAllocEx(hProcess, NULL, dwDataSize, MEM_RESERVE | MEM_COMMIT, dwProtection);
-    if(pRemoteData == NULL)
-        return NULL;
-    /* Write data to allocated memory */
-    if(WriteProcessMemory(hProcess, pRemoteData, pData, dwDataSize, NULL) == FALSE)
+    if(allocSize == 0)
+        allocSize = bufferSize;
+    // Allocate memory in address space of target process
+    ptr_t remoteAddress = (ptr_t)VirtualAllocEx(process, NULL, allocSize, MEM_RESERVE | MEM_COMMIT, protection);
+    if(remoteAddress == NULL)
+        goto OnError;
+    if(buffer == NULL || bufferSize == 0)
+        return remoteAddress;
+    // If memory protection is not writable, make it writable
+    PageProtection oldProtection = Invalid;
+    if(!BITMASK_IS_SET(protection, ExecuteReadWrite)
+    && !BITMASK_IS_SET(protection, ReadWrite))
     {
-        DWORD dwLastError = GetLastError();
-        RemoteFreeMemory(hProcess, pRemoteData, dwDataSize);
-        SetLastError(dwLastError);
-        return NULL;
+        oldProtection = ProtectMemoryEx(process, remoteAddress, bufferSize, ReadWrite);
+        if(oldProtection == Invalid)
+            goto OnError;
     }
-    return pRemoteData;
+    // Write data to allocated memory
+    size_t bytesWritten = WriteMemoryEx(process, remoteAddress, buffer, bufferSize);
+    if(bytesWritten != bufferSize)
+        goto OnError;
+    // Revert to original memory protection
+    if(oldProtection != Invalid)
+    {
+        if(ProtectMemoryEx(process, remoteAddress, bufferSize, oldProtection) == Invalid)
+            goto OnError;
+    }
+    return remoteAddress;
+OnError:
+    PRESERVE_LAST_ERROR(
+        // On error free allocated memory so it does not leak
+        if(remoteAddress != NULL)
+        {
+                FreeMemoryEx(process, remoteAddress);
+        }
+    )
+    return NULL;
 }
 
-LPVOID WINAPI RemoteStoreMemory(
-    __in DWORD dwProcessId,
-    __in LPCVOID pData,
-    __in DWORD dwDataSize,
-    __in DWORD dwProtection
+bool WinHookApi FreeMemoryEx(
+    __in handle_t process,
+    __in ptr_t address
     )
 {
-    /* VirtualAllocEx: PROCESS_VM_OPERATION
-     * WriteProcessMemory: PROCESS_VM_WRITE, PROCESS_VM_OPERATION
-     */
-    HANDLE hProcess = OpenProcess(PROCESS_VM_OPERATION | PROCESS_VM_WRITE, FALSE, dwProcessId);
-    if(hProcess == NULL)
-        return FALSE;
-    LPVOID pRemoteData = RemoteStoreMemory(hProcess, pData, dwDataSize, dwProtection);
-    CloseHandlePreservingLastError(hProcess);
-    return pRemoteData;
+    // Release memory
+    return (VirtualFreeEx(process, (void*)address, 0, MEM_RELEASE) != FALSE);
 }
 
-BOOL WINAPI RemoteFreeMemory(
-    __in HANDLE hProcess,
-    __in LPVOID pData,
-    __in DWORD dwDataSize
+PageProtection WinHookApi ProtectMemoryEx(
+    __in handle_t process,
+    __in ptr_t address,
+    __in size_t size,
+    __in PageProtection newProtection
     )
 {
-    /* Release memory */
-    return VirtualFreeEx(hProcess, pData, dwDataSize, MEM_DECOMMIT);
+    PageProtection oldProtection;
+    if(VirtualProtectEx(process, (void*)address, size, newProtection, (DWORD*)&oldProtection) == FALSE)
+        return Invalid;
+    return oldProtection;
 }
 
-BOOL WINAPI RemoteFreeMemory(
-    __in DWORD dwProcessId,
-    __in LPVOID pData,
-    __in DWORD dwDataSize
+size_t WinHookApi ReadMemoryEx(
+    __in handle_t process,
+    __in ptr_t address,
+    __out void* buffer,
+    __in size_t bufferSize
     )
 {
-    /* VirtualFreeEx: PROCESS_VM_OPERATION
-     */
-    HANDLE hProcess = OpenProcess(PROCESS_VM_OPERATION, FALSE, dwProcessId);
-    if(hProcess == NULL)
-        return FALSE;
-    BOOL bResult = RemoteFreeMemory(hProcess, pData, dwDataSize);
-    CloseHandlePreservingLastError(hProcess);
-    return bResult;
-}
-
-DWORD RemoteProtectMemory(
-    __in HANDLE hProcess,
-    __in LPCVOID lpAddress,
-    __in DWORD dwNewProtection
-    )
-{
-    MEMORY_BASIC_INFORMATION memoryInfo;
-    if(VirtualQueryEx(hProcess, lpAddress, &memoryInfo, sizeof(memoryInfo)) == 0)
-        return FALSE;
-    if(memoryInfo.Protect == dwNewProtection)
-        return memoryInfo.Protect;
-    DWORD dwOldProtection;
-    if(VirtualProtectEx(hProcess, memoryInfo.BaseAddress, memoryInfo.RegionSize, dwNewProtection, &dwOldProtection) == FALSE)
+    size_t bytesRead = 0;
+    if(ReadProcessMemory(process, (void const*)address, buffer, bufferSize, (SIZE_T*)&bytesRead) == FALSE)
         return 0;
-    return dwOldProtection;
+    return bytesRead;
 }
 
-DWORD RemoteProtectMemory(
-    __in DWORD dwProcessId,
-    __in LPCVOID lpAddress,
-    __in DWORD dwNewProtection
+size_t WinHookApi WriteMemoryEx(
+    __in handle_t process,
+    __in ptr_t address,
+    __in void const* buffer,
+    __in size_t bufferSize
     )
 {
-    /* VirtualQueryEx: PROCESS_QUERY_INFORMATION
-     * VirtualProtectEx: PROCESS_VM_OPERATION
-     */
-    HANDLE hProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_OPERATION, FALSE, dwProcessId);
-    if(hProcess == NULL)
-        return FALSE;
-    DWORD dwOldProtection = RemoteProtectMemory(hProcess, lpAddress, dwNewProtection);
-    CloseHandlePreservingLastError(hProcess);
-    return dwOldProtection;
+    size_t bytesWritten = 0;
+    if(WriteProcessMemory(process, (void*)address, buffer, bufferSize, (SIZE_T*)&bytesWritten) == FALSE)
+        return 0;
+    return bytesWritten;
 }

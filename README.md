@@ -1,4 +1,4 @@
 WinHook
 =======
 
-Windows library for hooking functions underneath processes, injecting DLLs into other applications, and more. (Somewhat similar to MS Detours)
+Library for hooking functions imported by other processes. (Somewhat similar to MS Detours)
